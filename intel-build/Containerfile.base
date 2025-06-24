@@ -1,6 +1,6 @@
 FROM registry.redhat.io/rhel10/rhel-bootc:10.0-1750161981
 
+# Create user accounts
 RUN useradd -m -s /bin/bash Arm && \
-	echo 'Arm:pass' | chpasswd
-
-RUN echo 'root:pass' | chpasswd
+    echo 'Arm:pass' | chpasswd && \
+    echo 'root:pass' | chpasswd
