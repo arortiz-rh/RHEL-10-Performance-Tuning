@@ -1,20 +1,20 @@
 FROM registry.redhat.io/rhel10/rhel-bootc:10.0-1750161981
 
-# Create user accounts
+ARG ETHERNET_MODULE="r8169"
+
 RUN useradd -m -s /bin/bash Arm && \
     echo 'Arm:pass' | chpasswd && \
     echo 'root:pass' | chpasswd
 
-# Install core networking and system packages
-RUN dnf install --setopt=keepcache=0 -y \
-    systemd-udev \
-    dbus \
-    NetworkManager \
-    kernel-modules \
-    linux-firmware \
-    dracut-network \
-    iproute \
-    lm_sensors && \
+RUN dnf remove -y --setopt=keepcache=0 -y \
+    amd-gpu-firmware-20250314-15.el10.noarch \
+    nvidia-gpu-firmware-20250314-15.el10.noarch \
+    redhat-release-eula-10.0-30.el10.x86_64 && \
     dnf clean all && \
     rm -rf /var/cache/dnf
 
+RUN install -m 0644 -o root -g root -D /dev/null /etc/modprobe.d/disable-ethernet.conf && \
+    echo "blacklist ${ETHERNET_MODULE}" | tee /etc/modprobe.d/disable-ethernet.conf && \
+    echo "install ${ETHERNET_MODULE} /bin/false" | tee -a /etc/modprobe.d/disable-ethernet.conf
+
+RUN bootc container lint
