@@ -4,3 +4,9 @@ RUN useradd -m -s /bin/bash Arm && \
 	echo 'Arm:pass' | chpasswd
 
 RUN echo 'root:pass' | chpasswd
+
+RUN dnf remove -y --setopt=keepcache=0 -y \
+    amd-gpu-firmware-20250314-15.el10.noarch \
+    nvidia-gpu-firmware-20250314-15.el10.noarch && \
+    dnf clean all && \
+    rm -rf /var/cache/dnf

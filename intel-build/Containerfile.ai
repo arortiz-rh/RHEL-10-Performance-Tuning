@@ -1,0 +1,24 @@
+FROM registry.redhat.io/rhel10/rhel-bootc:10.0-1750161981
+
+# Ramalama runs in a container from quay.io/ramalama/ramalama:latest by default
+# If you have internet access on your device, this isn't needed. I'm manually
+# importing it here for offline functionality.
+ARG RAMALAMA_CONTAINER=ramalama-container.tar
+
+# This may not persist if you're using bootc upgrade, but it will alter how
+# this container behaves when it builds.
+ENV RAMALAMA_STORE=/opt/lib/ramalamaStore
+
+# Create user accounts
+RUN useradd -m -s /bin/bash Arm && \
+    echo 'Arm:pass' | chpasswd && \
+    echo 'root:pass' | chpasswd
+
+RUN dnf -y config-manager --set-enabled codeready-builder-for-rhel-10-$(arch)-rpms && \
+	sudo dnf -y install \
+	https://dl.fedoraproject.org/pub/epel/epel-release-latest-10.noarch.rpm
+
+COPY ${RAMALAMA_CONTAINER} /opt/models/ramalama-container.tar
+
+RUN dnf install -y python3-ramalama && \
+	ramalama pull smollm:135m
