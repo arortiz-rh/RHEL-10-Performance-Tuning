@@ -1,20 +1,35 @@
 FROM registry.redhat.io/rhel10/rhel-bootc:10.0-1750161981
 
-ARG ETHERNET_MODULE="r8169"
-
 RUN useradd -m -s /bin/bash Arm && \
-    echo 'Arm:pass' | chpasswd && \
-    echo 'root:pass' | chpasswd
+	echo 'Arm:pass' | chpasswd && \
+	echo 'root:pass' | chpasswd
 
+# Removing extra files
 RUN dnf remove -y --setopt=keepcache=0 -y \
-    amd-gpu-firmware-20250314-15.el10.noarch \
-    nvidia-gpu-firmware-20250314-15.el10.noarch \
-    redhat-release-eula-10.0-30.el10.x86_64 && \
-    dnf clean all && \
-    rm -rf /var/cache/dnf
+	amd-gpu-firmware-20250314-15.el10.noarch \
+	amd-ucode-firmware-20250314-15.el10.noarch \
+	nvidia-gpu-firmware-20250314-15.el10.noarch \
+	intel-audio-firmware-20250314-15.el10.noarch \
+	atheros-firmware-20250314-15.el10.noarch \
+	cirrus-audio-firmware-20250314-15.el10.noarch \
+	realtek-firmware-20250314-15.el10.noarch \
+	nxpwireless-firmware-20250314-15.el10.noarch \
+	mt7xxx-firmware-20250314-15.el10.noarch \
+	redhat-release-eula-10.0-30.el10.x86_64 && \
+	dnf clean all && \
+	rm -rf /var/cache/dnf
 
-RUN install -m 0644 -o root -g root -D /dev/null /etc/modprobe.d/disable-ethernet.conf && \
-    echo "blacklist ${ETHERNET_MODULE}" | tee /etc/modprobe.d/disable-ethernet.conf && \
-    echo "install ${ETHERNET_MODULE} /bin/false" | tee -a /etc/modprobe.d/disable-ethernet.conf
+# Disabling some unneeded services
+RUN ln -s /dev/null /etc/systemd/system/NetworkManager.service && \
+    ln -s /dev/null /etc/systemd/system/NetworkManager-wait-online.service && \
+    ln -s /dev/null /etc/systemd/system/sshd.service && \
+    ln -s /dev/null /etc/systemd/system/systemd-network-generator.service && \
+    ln -s /dev/null /etc/systemd/system/dev-hugepages.mount
 
-RUN bootc container lint
+RUN cat <<EOF >> /usr/lib/bootc/kargs.d/01-mitigations.toml
+kargs = ["quiet", "tpm_tis.interrupts=0", "log_level=err", "rd.udev.log_level=3", "mitigations=on"]
+match-architectures = ["x86_64", "aarch64"]
+EOF
+
+# Used for checking CPU temps, you can remove this if you don't need that.
+RUN dnf install -y lm_sensors
